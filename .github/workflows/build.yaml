@@ -34,7 +34,7 @@ jobs:
         with:
           path: |
             node_modules
-          key: ${{-chat
+          key: 
 
       - name: Change depends
         run: sh ./script/install.sh

@@ -20,6 +20,7 @@
     "typecheck": "vue-tsc --noEmit -p ./tsconfig.json --composite false"
   },
   "dependencies": {
+    "@types/random-seed": "^0.3.5",
     "@vicons/antd": "^0.13.0",
     "@vicons/material": "^0.13.0",
     "@vueuse/core": "14.0.0",
@@ -29,6 +30,8 @@
     "delta-comic-core": "link:../delta-comic-core",
     "es-toolkit": "^1.40.0",
     "naive-ui": "^2.43.1",
+    "pinia": "^3.0.4",
+    "random-seed": "^0.3.0",
     "vant": "^4.9.21",
     "vue": "^3.5.22",
     "vue-router": "^4.6.3"

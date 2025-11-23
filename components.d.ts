@@ -14,6 +14,7 @@ declare module 'vue' {
   export interface GlobalComponents {
     Card: typeof import('./src/components/card.vue')['default']
     ComicCard: typeof import('./src/components/comicCard.vue')['default']
+    NButton: typeof import('naive-ui')['NButton']
     NIcon: typeof import('naive-ui')['NIcon']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
@@ -29,6 +30,7 @@ declare module 'vue' {
 declare global {
   const Card: typeof import('./src/components/card.vue')['default']
   const ComicCard: typeof import('./src/components/comicCard.vue')['default']
+  const NButton: typeof import('naive-ui')['NButton']
   const NIcon: typeof import('naive-ui')['NIcon']
   const RouterLink: typeof import('vue-router')['RouterLink']
   const RouterView: typeof import('vue-router')['RouterView']

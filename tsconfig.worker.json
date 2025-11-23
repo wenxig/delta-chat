@@ -3,8 +3,9 @@
     "jsx": "preserve",
     "lib": [
       "ESNext",
-      "DOM",
-      "DOM.Iterable"
+      "WebWorker",
+      "WebWorker.ImportScripts",
+      "Webworker.Iterable"
     ],
     "strict": true,
     "target": "ESNext",
@@ -39,12 +40,7 @@
     ],
   },
   "include": [
-    "src/**/*"
-  ],
-  "exclude": [
     "src/**/*.worker.*"
   ],
-  "extends":[
-    "./tsconfig.worker.json"
-  ]
+  "exclude": []
 }
