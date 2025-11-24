@@ -1,41 +1,27 @@
 <script setup lang='ts'>
 import { ref } from 'vue'
-import build from './lib/pqc-kem-frodokem1344shake.js'
-import wasmUrl from './lib/f1344shake.wasm?url';
-const begin = async () => {
-  const kem = await build(false, wasmUrl)
+import { usePeerStore } from './stores/peer'
+import { NInput } from 'naive-ui'
+import { Connection } from './utils/peer'
 
-  const { publicKey, privateKey } = await kem.keypair()
-
-  const { ciphertext, sharedSecret: sharedSecretA } = await kem.encapsulate(publicKey)
-  const { sharedSecret: sharedSecretB } = await kem.decapsulate(ciphertext, privateKey)
-
-
-  console.log("CipherText Length: ", ciphertext.length)
-  console.log("Cipher key: ", ciphertext)
-
-
-  console.log("Bob key Length: ", sharedSecretB.length)
-  console.log("Bob key: ", sharedSecretB)
-
-  console.log("Alice key Length: ", sharedSecretA.length)
-  console.log("Alice key: ", sharedSecretA)
-
-  console.log("Alice public key length: ", publicKey.length)
-  console.log("Alice public key: ", publicKey)
-
-  console.log("Alice private key length: ", privateKey.length)
-  console.log("Alice private key: ", privateKey)
-}
-const timer = ref(0)
-setInterval(() => {
-  timer.value += 0.5
-}, 500)
+const aimId = ref('')
+const peerStore = usePeerStore()
 </script>
 
 <template>
   <div>
-    <NButton @click="begin()">开始</NButton>
-    {{ timer }}
+    <div class="flex">
+      <NButton @click="Connection.connect(aimId)">连接</NButton>
+      <NInput v-model:value="aimId" />
+    </div>
+    <div>id: {{ peerStore.peer?.id }}</div>
+  </div>
+  <div class="w-full">
+    <div v-for="c of peerStore.connection.values()" class="w-full border-b border-b-gray-900 border-solid">
+      #id: {{ c.connect.peer }}
+      <div class="w-full border-b border-b-gray-500 border-solid" v-for="m of c.messages">
+        {{ m.data }}
+      </div>
+    </div>
   </div>
 </template>
