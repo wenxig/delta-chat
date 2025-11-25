@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { Peer } from 'peerjs'
 import { shallowReactive, shallowRef } from 'vue'
-import { Connection } from '@/utils/peer'
+import { Connection } from '@/utils/connection'
 
 export const usePeerStore = defineStore('peer', () => {
   const _peer = new Peer()

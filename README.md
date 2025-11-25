@@ -22,21 +22,7 @@ _该项目仍在积极开发_
 ## 功能
 
 - 聊天
-- 分享[Delta Comic](https://github.com/wenxig/delta-comic)的内容
-
-## 源项目
-
-### Delta Comic
-
-   [![Readme Card](https://github-readme-stats.vercel.app/api/pin/?username=wenxig&repo=delta-comic)](https://github.com/wenxig/delta-comic)  
-
-## 如何使用
-
-  1. 在[Delta Comic](https://github.com/wenxig/delta-comic)中安装这个插件
-
-### Ios
-
-  1. 尝试自行构建
+- <del>分享[Delta Comic](https://github.com/wenxig/delta-comic)的内容</del>
 
 ## Star History
 

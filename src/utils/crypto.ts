@@ -1,94 +1,58 @@
 import build, { type KEM } from '../lib/pqc-kem-frodokem1344shake.js'
 import wasmUrl from '../lib/f1344shake.wasm?url'
-import { SHA256, } from 'crypto-js'
+import { AES, enc, format, mode, SHA512, } from 'crypto-js'
 import { kyber } from 'kyber-crystals'
+import { sum } from 'es-toolkit'
 
 
 export abstract class BasePeer {
   public abstract sharedSecret?: Uint8Array<ArrayBufferLike>
   public abstract peerId?: string
-  public intermingleArrayBuffer(src: Uint8Array<ArrayBufferLike>) {
+
+
+  public encryptArrayBufferByChunk(buffer: ArrayBufferLike, pwd: number) {
+    console.log('[encryptArrayBufferByChunk]', pwd)
+    return buffer
+  }
+
+  public encryptArrayBuffer(src: Uint8Array<ArrayBufferLike>) {
     const text = new TextDecoder().decode(src.buffer)
-    const hex = SHA256(text).toString()
+    const hex = SHA512(text).toString()
     const allNumberOfHex = hex.match(/\d/g)?.join('') || '0'
+    console.log('[encryptArrayBuffer] calculated hex:', hex, 'allNumberOfHex:', allNumberOfHex)
+    let chunkNumber = allNumberOfHex
     do {
-      var chunkNumber = ''
-      allNumberOfHex.split('').forEach((num) => {
-        chunkNumber = Number(chunkNumber) + Number(num) + ''
-      })
-    } while (chunkNumber.length != 1)
-
-    const total = src.length
-    const parts = Math.max(1, Number(chunkNumber))
-
-    if (parts === 1) return {
-      buffer: src.buffer,
-      hex
-    }
-
-    const chunks: Uint8Array[] = []
-    let offset = 0
-    for (let i = 0; i < parts; i++) {
-      const remainingParts = parts - i
-      const size = Math.floor((total - offset) / remainingParts)
-      chunks.push(src.subarray(offset, offset + size))
-      offset += size
-    }
-
-    const out = new Uint8Array(total)
-    let pos = 0
-    for (const c of chunks.reverse()) {
-      out.set(c, pos)
-      pos += c.length
-    }
-
+      console.log('[encryptArrayBuffer] current chunkNumber:', chunkNumber)
+      chunkNumber = String(sum(chunkNumber.split('').map(n => Number(n))))
+      if (chunkNumber.length <= 1) break
+    } while (true)
+    console.log('[encryptArrayBuffer] counted chunkNumber:', chunkNumber)
+    const result = this.encryptArrayBufferByChunk(src.buffer, Number(chunkNumber))
+    console.log('[encryptArrayBuffer] intermingle done')
     return {
-      buffer: out.buffer,
+      buffer: result,
       hex
     }
   }
-  public deintermingleArrayBuffer({ buffer, hex }: { buffer: ArrayBufferLike; hex: string }): ArrayBufferLike {
+
+  public decryptArrayBufferByChunk(buffer: ArrayBufferLike, pwd: number) {
+    console.log('[decryptArrayBufferByChunk]', pwd)
+    return buffer
+  }
+  public decryptArrayBuffer({ buffer, hex }: { buffer: ArrayBufferLike; hex: string }) {
 
     const allNumberOfHex = hex.match(/\d/g)?.join('') || '0'
-
-    let chunkNumber = ''
+    let chunkNumber = allNumberOfHex
+    console.log('[decryptArrayBuffer] calculated hex:', hex, 'allNumberOfHex:', allNumberOfHex)
     do {
-      chunkNumber = ''
-      for (const num of allNumberOfHex.split('')) {
-        chunkNumber = Number(chunkNumber) + Number(num) + ''
-      }
-    } while (chunkNumber.length !== 1)
+      console.log('[decryptArrayBuffer] current chunkNumber:', chunkNumber)
+      chunkNumber = String(sum(chunkNumber.split('').map(n => Number(n))))
+      if (chunkNumber.length <= 1) break
+    } while (true)
+    console.log('[decryptArrayBuffer] counted chunkNumber:', chunkNumber)
 
-    const parts = Math.max(1, Number(chunkNumber))
-    if (parts === 1) return buffer
 
-    const total = buffer.byteLength
-    const sizes: number[] = []
-    let offset = 0
-    for (let i = 0; i < parts; i++) {
-      const remainingParts = parts - i
-      const size = Math.floor((total - offset) / remainingParts)
-      sizes.push(size)
-      offset += size
-    }
-
-    const srcView = new Uint8Array(buffer)
-    const reversedChunks: Uint8Array[] = []
-    let readPos = 0
-    for (const s of sizes.slice().reverse()) {
-      reversedChunks.push(srcView.subarray(readPos, readPos + s))
-      readPos += s
-    }
-
-    const chunks = reversedChunks.reverse()
-    const out = new Uint8Array(total)
-    let pos = 0
-    for (const c of chunks) {
-      out.set(c, pos)
-      pos += c.length
-    }
-
-    return out.buffer
+    return this.decryptArrayBufferByChunk(buffer, Number(chunkNumber))
   }
 }
 
@@ -100,7 +64,7 @@ async function hkdfExpandConcat(secretA: Uint8Array<ArrayBufferLike>, secretB: U
   const concat = new Uint8Array(secretA.length + secretB.length)
   concat.set(secretA, 0)
   concat.set(secretB, secretA.length)
-  const salt = crypto.getRandomValues(new Uint8Array(32))
+  const salt = new Uint8Array([1, 1, 4, 5, 1, 4])
 
   // Import as raw key for HKDF
   const key = await subtle.importKey('raw', concat.buffer, 'HKDF', false, ['deriveBits'])
@@ -128,7 +92,13 @@ export class Initiator extends BasePeer {
 
     const finalKey = await hkdfExpandConcat(frodoSS, kyberSS, 'frodokyber-hybrid-v1', 32)
     this.sharedSecret = finalKey
-    return [ciphertext, cyphertext2]
+    console.log('[Responder:createSecret] created shared secret:')
+    console.table({
+      hybrid: SHA512(finalKey.toString()).toString(),
+      frodo: SHA512(frodoSS.toString()).toString(),
+      kyber: SHA512(kyberSS.toString()).toString()
+    })
+    return [ciphertext.buffer, cyphertext2.buffer]
   }
 }
 
@@ -147,15 +117,21 @@ export class Responder extends BasePeer {
     const { publicKey: publicKey2, privateKey: privateKey2 } = await kyber.keyPair()
     this.privateKey = [privateKey1, privateKey2]
     this.publicKey = [publicKey1, publicKey2]
-    return this.publicKey
+    return this.publicKey.map(pk => pk.buffer)
   }
-  public async createSecret([f, k]: Uint8Array<ArrayBufferLike>[]) {
-    const { sharedSecret: frodoSS } = await this.kem.decapsulate(f, this.privateKey![0])
-    const kyberSS = await kyber.decrypt(k, this.privateKey![1])
+  public async createSecret([f, k]: ArrayBufferLike[]) {
+    const { sharedSecret: frodoSS } = await this.kem.decapsulate(new Uint8Array(f), this.privateKey![0])
+    const kyberSS = await kyber.decrypt(new Uint8Array(k), this.privateKey![1])
     delete this.privateKey
     delete this.publicKey
     const finalKey = await hkdfExpandConcat(frodoSS, kyberSS, 'frodokyber-hybrid-v1', 32)
     this.sharedSecret = finalKey
-    return finalKey
+    console.log('[Responder:createSecret] created shared secret:')
+    console.table({
+      hybrid: SHA512(finalKey.toString()).toString(),
+      frodo: SHA512(frodoSS.toString()).toString(),
+      kyber: SHA512(kyberSS.toString()).toString()
+    })
+    return finalKey.buffer
   }
 }

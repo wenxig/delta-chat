@@ -4,5 +4,5 @@
 @import "tailwindcss/utilities.css" layer(utilities);
 
 * {
-  user-select: none;
+  user-select: auto;
 }

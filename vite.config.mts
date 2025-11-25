@@ -40,7 +40,7 @@ export default defineConfig(({ command }) => ({
     // cssMinify: true
   },
   server: {
-    port: 6173
+    port: 5173
   },
   base: "/",
 } satisfies UserConfigExport))
