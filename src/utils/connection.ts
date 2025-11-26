@@ -24,7 +24,7 @@ export class Connection {
     console.log('[createStringMessage] Intermingle done')
     return {
       type: 'text' as const,
-      content: new TextDecoder().decode(buffer),
+      content: new TextDecoder().decode(intermingle.buffer),
       hex: intermingle.hex
     }
   }
@@ -34,7 +34,7 @@ export class Connection {
     const encrypt = AES.encrypt(str, this.createMessageKey(this.connect.peer)).toString(format.OpenSSL)
     console.log('[sendMessage] Encrypted message done', encrypt, this.createMessageKey(this.connect.peer))
     const buffer = new TextEncoder().encode(encrypt).buffer
-    const intermingle = this.peer.encryptArrayBufferByChunk(buffer, buffer.byteLength % 16 + 1)
+    const intermingle = this.peer.encryptArrayBufferByChunk(buffer, 12)
     await this.connect.send(intermingle)
     this.messages.push(rawMessage)
   }
@@ -48,10 +48,11 @@ export class Connection {
 
   private handleReceivedMessage(data: ArrayBufferLike) {
     console.log('[handleReceivedMessage] Received data', data)
-    const intermingle = this.peer.decryptArrayBufferByChunk(data, data.byteLength % 16 + 1)
+    const intermingle = this.peer.decryptArrayBufferByChunk(data, 12)
     const text = new TextDecoder().decode(intermingle)
+    console.log('[handleReceivedMessage] text', text)
     const openSSL = format.OpenSSL.parse(text)
-    console.log('[handleReceivedMessage] Deintermingle done', text, openSSL, this.createMessageKey(this.ins.id))
+    console.log('[handleReceivedMessage] Deintermingle done', text, this.createMessageKey(this.ins.id))
     const decrypt = AES.decrypt(openSSL, this.createMessageKey(this.ins.id))
     const decryptedStr = decrypt.toString(enc.Utf8)
     const message: Message = JSON.parse(decryptedStr)
@@ -70,8 +71,9 @@ export class Connection {
         break
       case 'text':
         const content = message.content
+        console.log('[decryptMessageContent] Decrypting message content', content, message.hex)
         const buffer = new TextEncoder().encode(content).buffer
-        const deintermingle = this.peer.decryptArrayBufferByChunk(buffer, buffer.byteLength % 16 + 1)
+        const deintermingle = this.peer.decryptArrayBuffer({ buffer, hex: message.hex })
         result = new TextDecoder().decode(deintermingle)
         break
     }

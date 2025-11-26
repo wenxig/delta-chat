@@ -1,18 +1,33 @@
 import build, { type KEM } from '../lib/pqc-kem-frodokem1344shake.js'
 import wasmUrl from '../lib/f1344shake.wasm?url'
-import { AES, enc, format, mode, SHA512, } from 'crypto-js'
+import { AES, enc, MD5, SHA512, } from 'crypto-js'
 import { kyber } from 'kyber-crystals'
 import { sum } from 'es-toolkit'
-
+import { processStringArray } from './arrayBuffer.js'
+import { gcmsiv } from '@noble/ciphers/aes.js'
+import { randomBytes } from '@noble/ciphers/utils.js'
+import { utf8ToBytes, bytesToUtf8, bytesToHex, hexToBytes, concatBytes } from '@noble/ciphers/utils.js'
 
 export abstract class BasePeer {
   public abstract sharedSecret?: Uint8Array<ArrayBufferLike>
   public abstract peerId?: string
 
+  private createArrayBufferInit(pwd: number) {
+    return [
+      new TextEncoder().encode(MD5(`${this.sharedSecret ?? 'no-ss'}|${pwd}`).toString()).slice(0, 32),
+      new TextEncoder().encode(MD5(String(pwd)).toString()).slice(0, 12)
+    ] as const
+  }
+  private createArrayBufferData(buffer: ArrayBufferLike) {
+    const arr = new Uint8Array(buffer)
+    if (arr.length >= 16) return arr
 
+    const padded = new Uint8Array(16)//.fill(16)
+    padded.set(arr, 0)
+    return padded
+  }
   public encryptArrayBufferByChunk(buffer: ArrayBufferLike, pwd: number) {
-    console.log('[encryptArrayBufferByChunk]', pwd)
-    return buffer
+    return gcmsiv(...this.createArrayBufferInit(pwd)).encrypt(this.createArrayBufferData(buffer)).buffer
   }
 
   public encryptArrayBuffer(src: Uint8Array<ArrayBufferLike>) {
@@ -36,8 +51,8 @@ export abstract class BasePeer {
   }
 
   public decryptArrayBufferByChunk(buffer: ArrayBufferLike, pwd: number) {
-    console.log('[decryptArrayBufferByChunk]', pwd)
-    return buffer
+    console.warn(this.createArrayBufferData(buffer))
+    return gcmsiv(...this.createArrayBufferInit(pwd)).decrypt(this.createArrayBufferData(buffer)).buffer
   }
   public decryptArrayBuffer({ buffer, hex }: { buffer: ArrayBufferLike; hex: string }) {
 
