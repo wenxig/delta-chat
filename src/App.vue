@@ -26,10 +26,12 @@ const messageText = reactive(<Record<string, string>>{})
         <NButton @click="() => c.sendMessage(c.createStringMessage(messageText[c.connect.peer]))">发送</NButton>
         <NInput v-model:value="messageText[c.connect.peer]" />
       </div>
-      <div class="w-full border-b border-b-gray-500 border-solid" v-for="m of c.messages">
-        <span class="bg-yellow-200 mr-2">{{ m.type }}</span>
-        {{ c.decryptMessageContent(m) }}
-      </div>
+      <template v-for="m of c.messages">
+        <div class="w-full border-b border-b-gray-500 border-solid" v-if="m.display">
+          <span class="bg-yellow-200 mr-2">{{ m.type }}</span>
+          {{ c.decryptMessageContent(m) }}
+        </div>
+      </template>
     </div>
   </div>
 </template>
